@@ -1,0 +1,31 @@
+# ansible/roles/argocd/tasks/main.yml
+
+- name: Create Argo CD namespace
+  kubernetes.core.k8s:
+    name: "{{ argocd_namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Install Argo CD
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ argocd_namespace }}"
+    src: "https://raw.githubusercontent.com/argoproj/argo-cd/{{ argocd_version }}/manifests/install.yaml"
+
+- name: Wait for Argo CD server
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: argocd-server
+    namespace: "{{ argocd_namespace }}"
+  register: argocd_server
+
+- name: Set Argo CD admin password
+  ansible.builtin.command:
+    cmd: >
+      {{ ansible_playbook_python }} -c
+      "import bcrypt;
+      print(bcrypt.hashpw(b'{{ argocd_admin_password }}', bcrypt.gensalt()).decode())"
+  register: argocd_password_hash
+  changed_when: false

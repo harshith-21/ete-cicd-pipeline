@@ -1,0 +1,3 @@
+# ansible/group_vars/all.yaml
+
+argocd_namespace: argocd

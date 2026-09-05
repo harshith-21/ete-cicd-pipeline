@@ -1,0 +1,22 @@
+- name: Delete Argo CD
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Delete Argo CD namespace
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: "{{ argocd_namespace }}"
+        state: absent
+
+    - name: Wait for Argo CD namespace to be deleted
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: "{{ argocd_namespace }}"
+      register: argocd_namespace_status
+      until: argocd_namespace_status.resources | length == 0
+      retries: 30
+      delay: 2

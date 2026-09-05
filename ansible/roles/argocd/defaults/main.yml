@@ -1,0 +1,4 @@
+argocd_version: "v3.1.8"
+
+argocd_admin_username: admin
+argocd_admin_password: "admin123"
