@@ -8,9 +8,9 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/tektoncd/operator.git
-    targetRevision: v0.81.0
-    path: config
+    repoURL: ghcr.io/tektoncd/operator/charts
+    chart: tekton-operator
+    targetRevision: 0.81.0
 
   destination:
     server: https://kubernetes.default.svc
@@ -23,3 +23,4 @@ spec:
 
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
