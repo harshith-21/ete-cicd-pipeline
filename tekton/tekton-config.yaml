@@ -2,20 +2,6 @@ apiVersion: operator.tekton.dev/v1alpha1
 kind: TektonConfig
 metadata:
   name: config
-
 spec:
   targetNamespace: tekton-pipelines
-
   profile: all
-
-  trigger:
-    disabled: true
-
-  chain:
-    disabled: true
-
-  result:
-    disabled: true
-
-  dashboard:
-    readonly: false
