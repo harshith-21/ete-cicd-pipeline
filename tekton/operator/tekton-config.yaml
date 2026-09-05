@@ -3,4 +3,21 @@ kind: TektonConfig
 metadata:
   name: config
 spec:
+  targetNamespace: tekton-pipelines
+
   profile: all
+
+  pruner:
+    disabled: true
+    resources:
+      - taskrun
+      - pipelinerun
+    keep: 3
+
+  tektonpruner:
+    disabled: true
+    global-config:
+      enforcedConfigLevel: global
+
+  scheduler:
+    disabled: true
