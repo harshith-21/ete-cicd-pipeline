@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: harbor
+  namespace: argocd
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://helm.goharbor.io
+    chart: harbor
+    targetRevision: 1.19.1
+
+    helm:
+      valuesObject:
+        expose:
+          type: clusterIP
+          tls:
+            enabled: false
+        externalURL: http://harbor.local
+        harborAdminPassword: "ChangeMe123!"
+        persistence:
+          enabled: true
+          resourcePolicy: keep
+          persistentVolumeClaim:
+            registry:
+              storageClass: ""
+              accessMode: ReadWriteOnce
+              size: 20Gi
+
+            jobservice:
+              jobLog:
+                storageClass: ""
+                accessMode: ReadWriteOnce
+                size: 1Gi
+
+            database:
+              storageClass: ""
+              accessMode: ReadWriteOnce
+              size: 5Gi
+
+            redis:
+              storageClass: ""
+              accessMode: ReadWriteOnce
+              size: 1Gi
+
+            trivy:
+              storageClass: ""
+              accessMode: ReadWriteOnce
+              size: 5Gi
+
+        trivy:
+          enabled: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: harbor
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
