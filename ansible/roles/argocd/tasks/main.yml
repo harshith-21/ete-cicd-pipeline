@@ -1,5 +1,3 @@
-# ansible/roles/argocd/tasks/main.yml
-
 - name: Create Argo CD namespace
   kubernetes.core.k8s:
     name: "{{ argocd_namespace }}"
@@ -20,8 +18,13 @@
     name: argocd-server
     namespace: "{{ argocd_namespace }}"
   register: argocd_server
+  until:
+    - argocd_server.resources | length > 0
+    - argocd_server.resources[0].status.readyReplicas | default(0) | int > 0
+  retries: 30
+  delay: 5
 
-- name: Set Argo CD admin password
+- name: Generate Argo CD admin password hash
   ansible.builtin.command:
     cmd: >
       {{ ansible_playbook_python }} -c
@@ -29,3 +32,17 @@
       print(bcrypt.hashpw(b'{{ argocd_admin_password }}', bcrypt.gensalt()).decode())"
   register: argocd_password_hash
   changed_when: false
+  no_log: true
+
+- name: Configure Argo CD admin password
+  kubernetes.core.k8s:
+    state: patched
+    api_version: v1
+    kind: Secret
+    name: argocd-secret
+    namespace: "{{ argocd_namespace }}"
+    definition:
+      stringData:
+        admin.password: "{{ argocd_password_hash.stdout }}"
+        admin.passwordMtime: "2026-09-05T00:00:00Z"
+  no_log: true
