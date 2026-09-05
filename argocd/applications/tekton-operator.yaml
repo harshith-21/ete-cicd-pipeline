@@ -11,6 +11,10 @@ spec:
     repoURL: ghcr.io/tektoncd/operator/charts
     chart: tekton-operator
     targetRevision: 0.81.0
+    helm:
+      releaseName: tekton-operator
+      values: |
+        installCRDs: true
 
   destination:
     server: https://kubernetes.default.svc
@@ -21,6 +25,6 @@ spec:
       prune: true
       selfHeal: true
 
-    syncOptions:
-      - CreateNamespace=true
-      - ServerSideApply=true
+  syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
