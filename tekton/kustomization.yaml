@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - https://infra.tekton.dev/tekton-releases/pipeline/previous/v1.16.0/release.yaml
+  - https://infra.tekton.dev/tekton-releases/dashboard/previous/v0.72.0/release.yaml
