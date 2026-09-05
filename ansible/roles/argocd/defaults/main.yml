@@ -2,3 +2,7 @@ argocd_version: "v3.1.8"
 
 argocd_admin_username: admin
 argocd_admin_password: "admin123"
+
+argocd_repo_url: "https://github.com/harshith-21/ete-cicd-pipeline.git"
+argocd_repo_revision: "main"
+argocd_apps_path: "argocd/applications"

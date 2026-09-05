@@ -46,3 +46,31 @@
         admin.password: "{{ argocd_password_hash.stdout }}"
         admin.passwordMtime: "2026-09-05T00:00:00Z"
   no_log: true
+
+
+- name: Create Argo CD root application
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ argocd_namespace }}"
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: root
+        namespace: "{{ argocd_namespace }}"
+      spec:
+        project: default
+
+        source:
+          repoURL: "{{ argocd_repo_url }}"
+          targetRevision: "{{ argocd_repo_revision }}"
+          path: "{{ argocd_apps_path }}"
+
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: "{{ argocd_namespace }}"
+
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
