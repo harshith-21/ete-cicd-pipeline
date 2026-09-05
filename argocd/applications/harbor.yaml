@@ -19,7 +19,7 @@ spec:
           tls:
             enabled: false
         externalURL: http://harbor.local
-        harborAdminPassword: "ChangeMe123!"
+        harborAdminPassword: "admin123"
         persistence:
           enabled: true
           resourcePolicy: keep
