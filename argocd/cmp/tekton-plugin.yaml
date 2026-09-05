@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cmp-plugin-tekton
+  namespace: argocd
+data:
+  plugin.yaml: |
+    apiVersion: argoproj.io/v1alpha1
+    kind: ConfigManagementPlugin
+    metadata:
+      name: tekton-runtime
+
+    spec:
+      discover:
+        find:
+          command:
+            - sh
+            - -c
+            - |
+              test -f versions.env && test -f generate.sh
+
+      generate:
+        command:
+          - sh
+          - -c
+          - ./generate.sh

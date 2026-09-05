@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-repo-server
+  namespace: argocd
+
+spec:
+  template:
+    spec:
+      containers:
+        - name: tekton-cmp
+          image: alpine:3.22
+          command:
+            - /bin/sh
+          args:
+            - -c
+            - |
+              apk add --no-cache curl
+              sleep infinity
+
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+
+          volumeMounts:
+            - name: var-files
+              mountPath: /var/run/argocd
+
+            - name: plugins
+              mountPath: /home/argocd/cmp-server/plugins
+
+            - name: cmp-plugin
+              mountPath: /home/argocd/cmp-server/config/plugin.yaml
+              subPath: plugin.yaml
+
+            - name: cmp-tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: cmp-plugin
+          configMap:
+            name: cmp-plugin-tekton
+
+        - name: cmp-tmp
+          emptyDir: {}

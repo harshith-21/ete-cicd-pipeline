@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: tekton-config
+  name: tekton
   namespace: argocd
 
 spec:
@@ -12,9 +12,12 @@ spec:
     targetRevision: main
     path: tekton
 
+    plugin:
+      name: tekton-runtime
+
   destination:
     server: https://kubernetes.default.svc
-    namespace: tekton-pipelines
+    namespace: tekton-operator
 
   syncPolicy:
     automated:
