@@ -12,23 +12,43 @@ spec:
     - name: test
       image: golang:1.25-alpine
 
+      workingDir: $(workspaces.source.path)
+
       securityContext:
+        runAsUser: 65532
+        runAsGroup: 65532
+        runAsNonRoot: true
         allowPrivilegeEscalation: false
         capabilities:
           drop:
             - ALL
-        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
 
-      workingDir: $(workspaces.source.path)/go-calculator
+      env:
+        - name: GOPATH
+          value: /tmp/go
+        - name: GOCACHE
+          value: /tmp/go-cache
 
       script: |
         #!/bin/sh
         set -eu
 
-        echo "Running Go tests..."
+        echo "========================================"
+        echo "Go Test"
+        echo "========================================"
+
+        echo "Go version:"
+        go version
+
+        echo "Working directory:"
+        pwd
+
+        echo "Running tests..."
 
         go test ./...
 
-        echo "Tests passed."
+        echo "========================================"
+        echo "Tests passed"
+        echo "========================================"
