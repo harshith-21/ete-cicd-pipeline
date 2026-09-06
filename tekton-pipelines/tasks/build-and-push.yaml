@@ -27,11 +27,11 @@ spec:
 
   steps:
     - name: build-and-push
-      image: gcr.io/kaniko-project/executor:v1.23.2
+      image: moby/buildkit:rootless
 
       securityContext:
-        runAsUser: 65532
-        runAsGroup: 65532
+        runAsUser: 1000
+        runAsGroup: 1000
         runAsNonRoot: true
         allowPrivilegeEscalation: false
         capabilities:
@@ -40,21 +40,87 @@ spec:
         seccompProfile:
           type: RuntimeDefault
 
+      env:
+        - name: HOME
+          value: /tmp
+
+        - name: BUILDKITD_FLAGS
+          value: --oci-worker-no-process-sandbox
+
       volumeMounts:
-        - name: docker-config
-          mountPath: /kaniko/.docker
+        - name: harbor-docker-config
+          mountPath: /tmp/.docker
           readOnly: true
 
-      args:
-        - --dockerfile=$(workspaces.source.path)/$(params.CONTEXT)/Dockerfile
-        - --context=$(workspaces.source.path)/$(params.CONTEXT)
-        - --destination=$(params.IMAGE)
-        - --label=org.opencontainers.image.version=$(params.VERSION)
-        - --label=org.opencontainers.image.revision=$(params.GIT_REVISION)
-        - --cache=true
+      workingDir: $(workspaces.source.path)/$(params.CONTEXT)
+
+      script: |
+        #!/bin/sh
+        set -eu
+
+        echo "========================================"
+        echo "Build and Push"
+        echo "========================================"
+
+        echo "Image     : $(params.IMAGE)"
+        echo "Version   : $(params.VERSION)"
+        echo "Revision  : $(params.GIT_REVISION)"
+        echo "Context   : $(workspaces.source.path)/$(params.CONTEXT)"
+
+        echo ""
+        echo "Dockerfile:"
+        cat Dockerfile
+
+        echo ""
+        echo "Starting BuildKit..."
+
+        buildkitd \
+          --addr unix:///tmp/buildkitd.sock \
+          ${BUILDKITD_FLAGS} \
+          > /tmp/buildkitd.log 2>&1 &
+
+        BUILDKITD_PID=$!
+
+        cleanup() {
+          kill "$BUILDKITD_PID" 2>/dev/null || true
+        }
+
+        trap cleanup EXIT
+
+        echo "Waiting for BuildKit..."
+
+        for i in $(seq 1 30); do
+          if buildctl \
+            --addr unix:///tmp/buildkitd.sock \
+            debug workers >/dev/null 2>&1; then
+            break
+          fi
+
+          sleep 1
+        done
+
+        echo "BuildKit ready."
+
+        echo ""
+        echo "Building image..."
+
+        buildctl \
+          --addr unix:///tmp/buildkitd.sock \
+          build \
+          --frontend dockerfile.v0 \
+          --local context=. \
+          --local dockerfile=. \
+          --output type=image,name=$(params.IMAGE),push=true \
+          --label org.opencontainers.image.version=$(params.VERSION) \
+          --label org.opencontainers.image.revision=$(params.GIT_REVISION)
+
+        echo ""
+        echo "========================================"
+        echo "Build and push completed"
+        echo "========================================"
 
   volumes:
-    - name: docker-config
+    - name: harbor-docker-config
       secret:
         secretName: harbor-credentials
         items:
