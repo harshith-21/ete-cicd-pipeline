@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tekton-pipelines
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/harshith-21/ete-cicd-pipeline.git
+    targetRevision: main
+    path: tekton-pipelines
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tekton-privileged
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,53 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-and-push
+  namespace: tekton-pipelines
+
+spec:
+  params:
+    - name: IMAGE
+      type: string
+      description: Full image name including tag
+
+    - name: VERSION
+      type: string
+      description: Application version
+
+    - name: GIT_REVISION
+      type: string
+      description: Git revision
+
+    - name: CONTEXT
+      type: string
+      default: go-calculator
+
+  workspaces:
+    - name: source
+
+  steps:
+    - name: build-and-push
+      image: quay.io/buildah/stable:v1.39
+
+      securityContext:
+        privileged: true
+
+      workingDir: $(workspaces.source.path)
+
+      script: |
+        #!/usr/bin/env bash
+
+        set -euo pipefail
+
+        echo "Building:"
+        echo "  Image:   $(params.IMAGE)"
+        echo "  Version: $(params.VERSION)"
+        echo "  Commit:  $(params.GIT_REVISION)"
+
+        buildah bud \
+          --label "org.opencontainers.image.version=$(params.VERSION)" \
+          --label "org.opencontainers.image.revision=$(params.GIT_REVISION)" \
+          --tag "$(params.IMAGE)" \
+          .
+
+        buildah push "$(params.IMAGE)"

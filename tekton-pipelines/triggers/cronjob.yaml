@@ -1,0 +1,134 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: go-calculator-poller
+  namespace: tekton-pipelines
+
+spec:
+  schedule: "*/5 * * * *"
+
+  concurrencyPolicy: Forbid
+
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: go-calculator-pipeline
+
+          restartPolicy: Never
+
+          containers:
+            - name: poller
+              image: bitnami/kubectl:latest
+
+              env:
+                - name: GIT_URL
+                  value: "https://github.com/harshith-21/ete-cicd-pipeline.git"
+
+                - name: GIT_REVISION
+                  value: "main"
+
+                - name: APP_PATH
+                  value: "go-calculator"
+
+                - name: IMAGE_REPOSITORY
+                  value: "harbor.harbor.svc.cluster.local/library/go-calculator"
+
+              command:
+                - /bin/sh
+                - -c
+
+              args:
+                - |
+                  set -eu
+
+                  echo "Polling repository..."
+
+                  # ------------------------------------------------
+                  # Get current Git revision
+                  # ------------------------------------------------
+
+                  REVISION=$(git ls-remote "$GIT_URL" "refs/heads/$GIT_REVISION" | awk '{print $1}')
+
+                  echo "Git revision: $REVISION"
+
+                  # ------------------------------------------------
+                  # For now we will use GitHub raw content to obtain
+                  # VERSION.
+                  # ------------------------------------------------
+
+                  VERSION=$(wget -qO- \
+                    "https://raw.githubusercontent.com/harshith-21/ete-cicd-pipeline/main/go-calculator/VERSION")
+
+                  VERSION=$(echo "$VERSION" | tr -d '[:space:]')
+
+                  echo "Application version: $VERSION"
+
+                  # ------------------------------------------------
+                  # Check if this PipelineRun already exists
+                  # ------------------------------------------------
+
+                  EXISTING=$(kubectl get pipelineruns \
+                    -n tekton-pipelines \
+                    -l "app=go-calculator,version=$VERSION" \
+                    --no-headers 2>/dev/null || true)
+
+                  if [ -n "$EXISTING" ]; then
+                    echo "Version $VERSION already processed."
+                    exit 0
+                  fi
+
+                  echo "New version detected: $VERSION"
+
+                  # ------------------------------------------------
+                  # Create PipelineRun
+                  # ------------------------------------------------
+
+                  cat <<EOF | kubectl apply -f -
+                  apiVersion: tekton.dev/v1
+                  kind: PipelineRun
+                  metadata:
+                    generateName: go-calculator-
+                    namespace: tekton-pipelines
+                    labels:
+                      app: go-calculator
+                      version: "$VERSION"
+
+                  spec:
+                    taskRunTemplate:
+                      serviceAccountName: go-calculator-pipeline
+
+                    pipelineRef:
+                      name: go-calculator
+
+                    params:
+                      - name: git-url
+                        value: "$GIT_URL"
+
+                      - name: git-revision
+                        value: "$REVISION"
+
+                      - name: version
+                        value: "$VERSION"
+
+                      - name: image-repository
+                        value: "$IMAGE_REPOSITORY"
+
+                      - name: image-tag
+                        value: "$VERSION"
+
+                      - name: context
+                        value: "go-calculator"
+
+                    workspaces:
+                      - name: source
+                        volumeClaimTemplate:
+                          spec:
+                            accessModes:
+                              - ReadWriteOnce
+                            resources:
+                              requests:
+                                storage: 2Gi
+                  EOF
+
+                  echo "PipelineRun created."

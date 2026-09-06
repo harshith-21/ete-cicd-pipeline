@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: go-calculator-pipeline
+  namespace: tekton-pipelines
+imagePullSecrets:
+  - name: harbor-credentials

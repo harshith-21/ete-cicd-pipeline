@@ -1,0 +1,84 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: go-calculator
+  namespace: tekton-pipelines
+
+spec:
+  params:
+    - name: git-url
+      type: string
+
+    - name: git-revision
+      type: string
+
+    - name: version
+      type: string
+
+    - name: image-repository
+      type: string
+
+    - name: image-tag
+      type: string
+
+    - name: context
+      type: string
+      default: go-calculator
+
+  workspaces:
+    - name: source
+
+  tasks:
+
+    - name: clone
+      taskRef:
+        name: git-clone
+
+      params:
+        - name: url
+          value: $(params.git-url)
+
+        - name: revision
+          value: $(params.git-revision)
+
+        - name: deleteExisting
+          value: "true"
+
+      workspaces:
+        - name: output
+          workspace: source
+
+    - name: test
+      runAfter:
+        - clone
+
+      taskRef:
+        name: go-test
+
+      workspaces:
+        - name: source
+          workspace: source
+
+    - name: build-and-push
+      runAfter:
+        - test
+
+      taskRef:
+        name: build-and-push
+
+      params:
+        - name: IMAGE
+          value: "$(params.image-repository):$(params.image-tag)"
+
+        - name: VERSION
+          value: "$(params.version)"
+
+        - name: GIT_REVISION
+          value: "$(params.git-revision)"
+
+        - name: CONTEXT
+          value: "$(params.context)"
+
+      workspaces:
+        - name: source
+          workspace: source
