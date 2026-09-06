@@ -6,7 +6,7 @@ metadata:
 
 spec:
   # Poll every 2 minutes
-  schedule: "*/2 * * * *"
+  schedule: "*/1 * * * *"
 
   # Never run two pollers simultaneously
   concurrencyPolicy: Forbid
