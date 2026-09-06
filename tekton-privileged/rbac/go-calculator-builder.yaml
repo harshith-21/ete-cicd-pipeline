@@ -54,6 +54,15 @@ imagePullSecrets:
   - name: harbor-credentials
 
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: go-calculator-pipeline
+  namespace: tekton-privileged
+imagePullSecrets:
+  - name: harbor-credentials
+
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -62,6 +71,21 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: go-calculator-builder
+    namespace: tekton-privileged
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: go-calculator-builder
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: go-calculator-pipeline
+  namespace: tekton-privileged
+subjects:
+  - kind: ServiceAccount
+    name: go-calculator-pipeline
     namespace: tekton-privileged
 roleRef:
   apiGroup: rbac.authorization.k8s.io
