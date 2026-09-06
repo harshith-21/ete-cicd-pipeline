@@ -1,0 +1,54 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: git-clone
+  namespace: tekton-pipelines
+
+spec:
+  params:
+    - name: url
+      type: string
+
+    - name: revision
+      type: string
+
+    - name: deleteExisting
+      type: string
+      default: "true"
+
+  workspaces:
+    - name: output
+
+  steps:
+    - name: clone
+      image: alpine/git:2.47.2
+
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
+      script: |
+        #!/bin/sh
+        set -eu
+
+        if [ "$(params.deleteExisting)" = "true" ]; then
+          find "$(workspaces.output.path)" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+        fi
+
+        cd "$(workspaces.output.path)"
+
+        git init
+
+        git remote add origin "$(params.url)"
+
+        git fetch --depth=1 origin "$(params.revision)"
+
+        git checkout FETCH_HEAD
+
+        echo "Checked out revision:"
+        git rev-parse HEAD

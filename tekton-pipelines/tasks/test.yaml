@@ -12,7 +12,16 @@ spec:
     - name: test
       image: golang:1.25-alpine
 
-      workingDir: $(workspaces.source.path)
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
+      workingDir: $(workspaces.source.path)/go-calculator
 
       script: |
         #!/bin/sh
@@ -21,3 +30,5 @@ spec:
         echo "Running Go tests..."
 
         go test ./...
+
+        echo "Tests passed."

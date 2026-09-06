@@ -6,6 +6,7 @@ namespace: tekton-pipelines
 resources:
   - tasks/test.yaml
   - tasks/build-and-push.yaml
+  - tasks/git-clone.yaml
   - pipeline.yaml
   - rbac/pipeline-runner.yaml
   - triggers/cronjob.yaml

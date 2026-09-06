@@ -27,27 +27,21 @@ spec:
 
   steps:
     - name: build-and-push
-      image: quay.io/buildah/stable:v1.39
+      image: gcr.io/kaniko-project/executor:v1.23.2
 
       securityContext:
-        privileged: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
 
-      workingDir: $(workspaces.source.path)
-
-      script: |
-        #!/usr/bin/env bash
-
-        set -euo pipefail
-
-        echo "Building:"
-        echo "  Image:   $(params.IMAGE)"
-        echo "  Version: $(params.VERSION)"
-        echo "  Commit:  $(params.GIT_REVISION)"
-
-        buildah bud \
-          --label "org.opencontainers.image.version=$(params.VERSION)" \
-          --label "org.opencontainers.image.revision=$(params.GIT_REVISION)" \
-          --tag "$(params.IMAGE)" \
-          .
-
-        buildah push "$(params.IMAGE)"
+      args:
+        - --dockerfile=$(workspaces.source.path)/$(params.CONTEXT)/Dockerfile
+        - --context=$(workspaces.source.path)/$(params.CONTEXT)
+        - --destination=$(params.IMAGE)
+        - --label=org.opencontainers.image.version=$(params.VERSION)
+        - --label=org.opencontainers.image.revision=$(params.GIT_REVISION)
+        - --cache=true
