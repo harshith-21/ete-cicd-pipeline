@@ -4,4 +4,5 @@ kind: Kustomization
 namespace: tekton-privileged
 
 resources:
+  - namespace.yaml
   - rbac/go-calculator-builder.yaml
