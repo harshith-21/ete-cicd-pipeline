@@ -4,3 +4,6 @@ kind: Kustomization
 resources:
   - pipelines/release.yaml
   - dashboard/release.yaml
+
+patches:
+  - path: config/feature-flags-patch.yaml
