@@ -40,6 +40,18 @@ spec:
 
         TARGET="$(workspaces.output.path)"
 
+        echo "========================================"
+        echo "Git Clone"
+        echo "========================================"
+
+        echo "Repository : $(params.url)"
+        echo "Revision   : $(params.revision)"
+        echo "Workspace  : $TARGET"
+
+        # --------------------------------------------------
+        # Clean workspace
+        # --------------------------------------------------
+
         echo "Cleaning workspace..."
 
         if [ "$(params.deleteExisting)" = "true" ]; then
@@ -47,24 +59,63 @@ spec:
           rm -rf "${TARGET:?}"/.[!.]* "${TARGET:?}"/..?* 2>/dev/null || true
         fi
 
-        echo "Configuring Git safe directory..."
+        # --------------------------------------------------
+        # Tell Git that the Tekton workspace is trusted.
+        #
+        # Do NOT use git config --global because UID 65532
+        # cannot write /.gitconfig.
+        # --------------------------------------------------
 
-        git config --global --add safe.directory "$TARGET"
+        export GIT_CONFIG_COUNT=1
+        export GIT_CONFIG_KEY_0=safe.directory
+        export GIT_CONFIG_VALUE_0="$TARGET"
 
-        echo "Initializing repository..."
+        # --------------------------------------------------
+        # Initialize repository
+        # --------------------------------------------------
 
         cd "$TARGET"
+
+        echo "Initializing repository..."
 
         git init
 
         git remote add origin "$(params.url)"
 
+        # --------------------------------------------------
+        # Fetch exact revision
+        # --------------------------------------------------
+
         echo "Fetching revision..."
 
-        git fetch --depth=1 origin "$(params.revision)"
+        git fetch \
+          --depth=1 \
+          origin \
+          "$(params.revision)"
 
-        git checkout FETCH_HEAD
+        # --------------------------------------------------
+        # Checkout exact commit
+        # --------------------------------------------------
 
-        echo "Clone completed."
+        echo "Checking out revision..."
 
-        git rev-parse HEAD
+        git checkout --detach FETCH_HEAD
+
+        # --------------------------------------------------
+        # Verify
+        # --------------------------------------------------
+
+        ACTUAL_REVISION="$(git rev-parse HEAD)"
+
+        echo "========================================"
+        echo "Clone completed"
+        echo "========================================"
+        echo "Expected: $(params.revision)"
+        echo "Actual:   $ACTUAL_REVISION"
+
+        if [ "$ACTUAL_REVISION" != "$(params.revision)" ]; then
+          echo "ERROR: revision mismatch"
+          exit 1
+        fi
+
+        echo "Revision verified successfully."
