@@ -11,7 +11,7 @@ spec:
   # Never run two pollers simultaneously
   concurrencyPolicy: Forbid
 
-  # Don't keep failed Jobs forever
+  # Keep only a few historical Jobs
   failedJobsHistoryLimit: 3
   successfulJobsHistoryLimit: 3
 
@@ -37,7 +37,6 @@ spec:
           containers:
             - name: poller
 
-              # Has git + shell. We download kubectl below.
               image: harshith21/tekton-poller:latest
               imagePullPolicy: Always
 
@@ -63,9 +62,6 @@ spec:
                 - name: IMAGE_REPOSITORY
                   value: "harbor.harbor.svc.cluster.local/library/go-calculator"
 
-                - name: KUBECTL_VERSION
-                  value: "v1.34.1"
-
               command:
                 - /bin/bash
                 - -c
@@ -77,23 +73,6 @@ spec:
                   echo "========================================"
                   echo "Go Calculator Poller"
                   echo "========================================"
-
-                  # --------------------------------------------------
-                  # Install kubectl into writable /tmp
-                  # --------------------------------------------------
-
-                  echo "Installing kubectl ${KUBECTL_VERSION}..."
-
-                  curl -fsSL \
-                    "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
-                    -o /tmp/kubectl
-
-                  chmod +x /tmp/kubectl
-
-                  KUBECTL="/tmp/kubectl"
-
-                  echo "kubectl:"
-                  "$KUBECTL" version --client
 
                   # --------------------------------------------------
                   # Get current Git commit SHA
@@ -121,7 +100,7 @@ spec:
 
                   VERSION=$(
                     curl -fsSL \
-                    "https://raw.githubusercontent.com/harshith-21/ete-cicd-pipeline/${GIT_REVISION}/${APP_PATH}/VERSION"
+                      "https://raw.githubusercontent.com/harshith-21/ete-cicd-pipeline/${GIT_REVISION}/${APP_PATH}/VERSION"
                   )
 
                   VERSION=$(echo "$VERSION" | tr -d '[:space:]')
@@ -140,7 +119,7 @@ spec:
                   echo "Checking existing PipelineRuns..."
 
                   EXISTING=$(
-                    "$KUBECTL" get pipelineruns \
+                    kubectl get pipelineruns \
                       -n tekton-pipelines \
                       -l "app=go-calculator,version=$VERSION" \
                       --no-headers 2>/dev/null || true
@@ -153,7 +132,7 @@ spec:
                   fi
 
                   # --------------------------------------------------
-                  # New version
+                  # New version detected
                   # --------------------------------------------------
 
                   echo "========================================"
@@ -164,17 +143,22 @@ spec:
 
                   # --------------------------------------------------
                   # Create PipelineRun
+                  #
+                  # kubectl create is intentional here because
+                  # generateName is used.
                   # --------------------------------------------------
 
-                  cat <<EOF | "$KUBECTL" apply -f -
+                  cat <<EOF | kubectl create -f -
                   apiVersion: tekton.dev/v1
                   kind: PipelineRun
                   metadata:
                     generateName: go-calculator-
                     namespace: tekton-pipelines
+
                     labels:
                       app: go-calculator
                       version: "$VERSION"
+
                   spec:
                     taskRunTemplate:
                       serviceAccountName: go-calculator-pipeline
