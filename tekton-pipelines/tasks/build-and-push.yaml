@@ -23,22 +23,22 @@ spec:
     - name: source
 
   volumes:
-    - name: kaniko-dir
-      emptyDir: {}
-
-    - name: kaniko-cache
-      emptyDir: {}
-
-    - name: harbor-docker-config
+    - name: docker-config
       secret:
         secretName: harbor-credentials
         items:
           - key: .dockerconfigjson
             path: config.json
 
+    - name: buildkit-state
+      emptyDir: {}
+
+    - name: buildkit-tmp
+      emptyDir: {}
+
   steps:
     - name: build-and-push
-      image: gcr.io/kaniko-project/executor:v1.23.2
+      image: moby/buildkit:v0.25.1-rootless
 
       securityContext:
         runAsNonRoot: true
@@ -53,32 +53,43 @@ spec:
 
       env:
         - name: HOME
-          value: /tmp
+          value: /home/user
 
-        - name: KANIKO_DIR
-          value: /tmp/kaniko
+        - name: XDG_RUNTIME_DIR
+          value: /tmp/buildkit
+
+        - name: BUILDKITD_FLAGS
+          value: --oci-worker-no-process-sandbox
 
       volumeMounts:
-        - name: kaniko-dir
-          mountPath: /tmp/kaniko
-
-        - name: kaniko-cache
-          mountPath: /cache
-
-        - name: harbor-docker-config
-          mountPath: /kaniko/.docker
+        - name: docker-config
+          mountPath: /home/user/.docker
           readOnly: true
+
+        - name: buildkit-state
+          mountPath: /home/user/.local/share/buildkit
+
+        - name: buildkit-tmp
+          mountPath: /tmp
 
       workingDir: $(workspaces.source.path)/$(params.CONTEXT)
 
       command:
-        - /kaniko/executor
+        - buildctl-daemonless.sh
 
       args:
-        - --context=$(workspaces.source.path)/$(params.CONTEXT)
-        - --dockerfile=$(workspaces.source.path)/$(params.CONTEXT)/Dockerfile
-        - --destination=$(params.IMAGE):$(params.VERSION)
-        - --cache=true
-        - --cache-dir=/cache
-        - --label=org.opencontainers.image.version=$(params.VERSION)
-        - --label=org.opencontainers.image.revision=$(params.GIT_REVISION)
+        - build
+
+        - --frontend=dockerfile.v0
+
+        - --local
+        - context=$(workspaces.source.path)/$(params.CONTEXT)
+
+        - --local
+        - dockerfile=$(workspaces.source.path)/$(params.CONTEXT)
+
+        - --output
+        - type=image,name=$(params.IMAGE):$(params.VERSION),push=true
+
+        - --opt
+        - filename=Dockerfile
