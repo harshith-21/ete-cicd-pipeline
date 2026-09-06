@@ -39,7 +39,7 @@ spec:
 
               # Has git + shell. We download kubectl below.
               image: harshith21/tekton-poller:latest
-              imagePullPolicy: IfNotPresent
+              imagePullPolicy: Always
 
               securityContext:
                 allowPrivilegeEscalation: false
