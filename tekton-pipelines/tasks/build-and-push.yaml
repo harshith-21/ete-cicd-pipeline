@@ -22,9 +22,17 @@ spec:
   workspaces:
     - name: source
 
+  volumes:
+    - name: harbor-docker-config
+      secret:
+        secretName: harbor-credentials
+        items:
+          - key: .dockerconfigjson
+            path: auth.json
+
   steps:
     - name: build-and-push
-      image: quay.io/buildah/stable:v1.41.0
+      image: quay.io/buildah/stable:v1.39.4
 
       securityContext:
         runAsNonRoot: true
@@ -92,11 +100,3 @@ spec:
         echo "========================================"
         echo "Build and push completed"
         echo "========================================"
-
-  volumes:
-    - name: harbor-docker-config
-      secret:
-        secretName: harbor-credentials
-        items:
-          - key: .dockerconfigjson
-            path: auth.json
