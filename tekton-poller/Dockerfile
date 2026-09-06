@@ -13,10 +13,10 @@ RUN curl -fsSL \
     -o /usr/local/bin/kubectl \
     && chmod +x /usr/local/bin/kubectl
 
-RUN addgroup -S poller \
-    && adduser -S -G poller poller
+RUN addgroup -S -g 65532 poller \
+    && adduser -S -D -H -u 65532 -G poller poller
 
-USER poller
+USER 65532:65532
 
 WORKDIR /home/poller
 
