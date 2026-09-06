@@ -10,3 +10,6 @@ resources:
   - pipeline.yaml
   - rbac/pipeline-runner.yaml
   - triggers/cronjob.yaml
+
+patches:
+  - path: config/feature-flags-patch.yaml
