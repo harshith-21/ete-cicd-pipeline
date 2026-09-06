@@ -32,7 +32,7 @@ spec:
 
   steps:
     - name: build-and-push
-      image: quay.io/buildah/stable:v1.39.4
+      image: quay.io/buildah/stable:v1.43.2
 
       securityContext:
         runAsNonRoot: true
