@@ -1,0 +1,77 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: go-calculator-builder
+  namespace: tekton-privileged
+rules:
+  - apiGroups:
+      - tekton.dev
+    resources:
+      - pipelineruns
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: go-calculator-builder
+  namespace: tekton-privileged
+subjects:
+  - kind: ServiceAccount
+    name: go-calculator-builder
+    namespace: tekton-pipelines
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: go-calculator-builder
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: go-calculator-builder
+  namespace: tekton-privileged
+imagePullSecrets:
+  - name: harbor-credentials
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: go-calculator-builder
+  namespace: tekton-privileged
+rules:
+  - apiGroups:
+      - tekton.dev
+    resources:
+      - pipelineresources
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: go-calculator-builder
+  namespace: tekton-privileged
+subjects:
+  - kind: ServiceAccount
+    name: go-calculator-builder
+    namespace: tekton-privileged
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: go-calculator-builder
