@@ -23,19 +23,16 @@ spec:
     - name: source
 
   volumes:
-    - name: buildah-tmp
-      emptyDir: {}
-
     - name: harbor-docker-config
       secret:
         secretName: harbor-credentials
         items:
           - key: .dockerconfigjson
-            path: auth.json
+            path: config.json
 
   steps:
     - name: build-and-push
-      image: quay.io/buildah/stable:v1.43.2
+      image: gcr.io/kaniko-project/executor:v1.23.2
 
       securityContext:
         runAsNonRoot: true
@@ -48,62 +45,21 @@ spec:
         seccompProfile:
           type: RuntimeDefault
 
-      env:
-        - name: HOME
-          value: /tmp
-
-        - name: REGISTRY_AUTH_FILE
-          value: /tmp/containers/auth.json
-
-        - name: STORAGE_DRIVER
-          value: vfs
-
       volumeMounts:
-        - name: buildah-tmp
-          mountPath: /tmp
-
         - name: harbor-docker-config
-          mountPath: /tmp/containers
+          mountPath: /kaniko/.docker
           readOnly: true
 
       workingDir: $(workspaces.source.path)/$(params.CONTEXT)
 
-      script: |
-        #!/bin/sh
-        set -eu
+      command:
+        - /kaniko/executor
 
-        echo "========================================"
-        echo "Build and Push"
-        echo "========================================"
-
-        echo "Image    : $(params.IMAGE)"
-        echo "Version  : $(params.VERSION)"
-        echo "Revision : $(params.GIT_REVISION)"
-
-        echo ""
-        echo "Buildah:"
-        buildah version
-
-        echo ""
-        echo "Building..."
-
-        buildah bud \
-          --storage-driver="${STORAGE_DRIVER}" \
-          --isolation=chroot \
-          --tag="$(params.IMAGE)" \
-          --label="org.opencontainers.image.version=$(params.VERSION)" \
-          --label="org.opencontainers.image.revision=$(params.GIT_REVISION)" \
-          .
-
-        echo ""
-        echo "Pushing..."
-
-        buildah push \
-          --storage-driver="${STORAGE_DRIVER}" \
-          "$(params.IMAGE)" \
-          "docker://$(params.IMAGE)"
-
-        echo ""
-        echo "========================================"
-        echo "Build and push completed"
-        echo "========================================"
+      args:
+        - --context=$(workspaces.source.path)/$(params.CONTEXT)
+        - --dockerfile=$(workspaces.source.path)/$(params.CONTEXT)/Dockerfile
+        - --destination=$(params.IMAGE):$(params.VERSION)
+        - --cache=true
+        - --cache-repo=$(params.IMAGE)-cache
+        - --label=org.opencontainers.image.version=$(params.VERSION)
+        - --label=org.opencontainers.image.revision=$(params.GIT_REVISION)
