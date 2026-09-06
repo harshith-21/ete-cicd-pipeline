@@ -10,3 +10,4 @@ resources:
   - pipeline.yaml
   - rbac/pipeline-runner.yaml
   - triggers/cronjob.yaml
+  - credentials/harbor-secret.yaml
