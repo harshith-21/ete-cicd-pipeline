@@ -35,9 +35,15 @@ spec:
       image: quay.io/buildah/stable:v1.43.2
 
       securityContext:
-        privileged: true
-        runAsUser: 0
-        runAsGroup: 0
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
 
       env:
         - name: HOME
@@ -50,6 +56,9 @@ spec:
           value: vfs
 
       volumeMounts:
+        - name: buildah-tmp
+          mountPath: /tmp
+
         - name: harbor-docker-config
           mountPath: /tmp/containers
           readOnly: true
@@ -77,6 +86,7 @@ spec:
 
         buildah bud \
           --storage-driver="${STORAGE_DRIVER}" \
+          --isolation=chroot \
           --tag="$(params.IMAGE)" \
           --label="org.opencontainers.image.version=$(params.VERSION)" \
           --label="org.opencontainers.image.revision=$(params.GIT_REVISION)" \
@@ -91,6 +101,15 @@ spec:
           "docker://$(params.IMAGE)"
 
         echo ""
-        echo "========================================"
         echo "Build and push completed"
-        echo "========================================"
+
+  volumes:
+    - name: buildah-tmp
+      emptyDir: {}
+
+    - name: harbor-docker-config
+      secret:
+        secretName: harbor-credentials
+        items:
+          - key: .dockerconfigjson
+            path: auth.json
