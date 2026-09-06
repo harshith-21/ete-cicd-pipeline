@@ -38,7 +38,7 @@ spec:
             - name: poller
 
               # Has git + shell. We download kubectl below.
-              image: bitnami/git:latest
+              image: harshith21/tekton-poller
               imagePullPolicy: IfNotPresent
 
               securityContext:

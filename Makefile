@@ -37,3 +37,9 @@ argo-reinstall: argo-clean argo
 
 clean:
 	rm -rf $(VENV)
+
+poller-push:
+	docker build -t harshith21/tekton-poller:1.0.0 ./tekton-poller
+	docker tag harshith21/tekton-poller:1.0.0 harshith21/tekton-poller:latest
+	docker push harshith21/tekton-poller:1.0.0
+	docker push harshith21/tekton-poller:latest
