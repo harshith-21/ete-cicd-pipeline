@@ -13,7 +13,7 @@ spec:
     spec:
       template:
         spec:
-          serviceAccountName: go-calculator-pipeline
+          serviceAccountName: go-calculator-poller
 
           restartPolicy: Never
 
@@ -24,13 +24,16 @@ spec:
 
           containers:
             - name: poller
-              image: YOUR_POLLER_IMAGE
+              image: bitnami/kubectl:latest
 
               securityContext:
                 allowPrivilegeEscalation: false
                 capabilities:
                   drop:
                     - ALL
+                runAsNonRoot: true
+                seccompProfile:
+                  type: RuntimeDefault
 
               env:
                 - name: GIT_URL
@@ -55,18 +58,9 @@ spec:
 
                   echo "Polling repository..."
 
-                  # ------------------------------------------------
-                  # Get current Git revision
-                  # ------------------------------------------------
-
                   REVISION=$(git ls-remote "$GIT_URL" "refs/heads/$GIT_REVISION" | awk '{print $1}')
 
                   echo "Git revision: $REVISION"
-
-                  # ------------------------------------------------
-                  # For now we will use GitHub raw content to obtain
-                  # VERSION.
-                  # ------------------------------------------------
 
                   VERSION=$(wget -qO- \
                     "https://raw.githubusercontent.com/harshith-21/ete-cicd-pipeline/main/go-calculator/VERSION")
@@ -74,10 +68,6 @@ spec:
                   VERSION=$(echo "$VERSION" | tr -d '[:space:]')
 
                   echo "Application version: $VERSION"
-
-                  # ------------------------------------------------
-                  # Check if this PipelineRun already exists
-                  # ------------------------------------------------
 
                   EXISTING=$(kubectl get pipelineruns \
                     -n tekton-pipelines \
@@ -90,10 +80,6 @@ spec:
                   fi
 
                   echo "New version detected: $VERSION"
-
-                  # ------------------------------------------------
-                  # Create PipelineRun
-                  # ------------------------------------------------
 
                   cat <<EOF | kubectl apply -f -
                   apiVersion: tekton.dev/v1
