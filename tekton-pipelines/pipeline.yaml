@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: go-calculator
-  namespace: tekton-pipelines
+  namespace: tekton-privileged
 
 spec:
   params:

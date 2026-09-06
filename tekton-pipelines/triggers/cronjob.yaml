@@ -153,7 +153,7 @@ spec:
                   kind: PipelineRun
                   metadata:
                     generateName: go-calculator-
-                    namespace: tekton-pipelines
+                    namespace: tekton-privileged
 
                     labels:
                       app: go-calculator

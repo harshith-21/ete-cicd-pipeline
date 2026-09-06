@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: build-and-push
-  namespace: tekton-pipelines
+  namespace: tekton-privileged
 
 spec:
   params:
