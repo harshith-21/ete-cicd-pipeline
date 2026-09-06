@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Calculator</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .calculator {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 320px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        input,
+        select,
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        #result {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #error {
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="calculator">
+    <h1>Go Calculator</h1>
+
+    <input
+        id="a"
+        type="number"
+        step="any"
+        placeholder="First number"
+    >
+
+    <select id="op">
+        <option value="+">+</option>
+        <option value="-">−</option>
+        <option value="*">×</option>
+        <option value="/">÷</option>
+    </select>
+
+    <input
+        id="b"
+        type="number"
+        step="any"
+        placeholder="Second number"
+    >
+
+    <button onclick="calculate()">Calculate</button>
+
+    <div id="result"></div>
+    <div id="error"></div>
+</div>
+
+<script>
+async function calculate() {
+    const a = Number(document.getElementById("a").value);
+    const b = Number(document.getElementById("b").value);
+    const op = document.getElementById("op").value;
+
+    const resultElement = document.getElementById("result");
+    const errorElement = document.getElementById("error");
+
+    resultElement.textContent = "";
+    errorElement.textContent = "";
+
+    try {
+        const response = await fetch("/api/calculate", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                a: a,
+                b: b,
+                op: op
+            })
+        });
+
+        if (!response.ok) {
+            const message = await response.text();
+            throw new Error(message);
+        }
+
+        const data = await response.json();
+
+        resultElement.textContent = data.result;
+    } catch (error) {
+        errorElement.textContent = error.message;
+    }
+}
+</script>
+
+</body>
+</html>
