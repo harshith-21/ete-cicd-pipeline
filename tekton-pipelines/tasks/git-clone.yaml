@@ -24,11 +24,13 @@ spec:
       image: alpine/git:2.47.2
 
       securityContext:
+        runAsUser: 65532
+        runAsGroup: 65532
+        runAsNonRoot: true
         allowPrivilegeEscalation: false
         capabilities:
           drop:
             - ALL
-        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
 
@@ -36,19 +38,29 @@ spec:
         #!/bin/sh
         set -eu
 
+        OUTPUT="$(workspaces.output.path)"
+
+        echo "Cleaning workspace..."
+
         if [ "$(params.deleteExisting)" = "true" ]; then
-          find "$(workspaces.output.path)" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          find "$OUTPUT" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
         fi
 
-        cd "$(workspaces.output.path)"
+        cd "$OUTPUT"
+
+        echo "Initializing repository..."
 
         git init
 
         git remote add origin "$(params.url)"
 
+        echo "Fetching revision $(params.revision)..."
+
         git fetch --depth=1 origin "$(params.revision)"
+
+        echo "Checking out revision..."
 
         git checkout FETCH_HEAD
 
-        echo "Checked out revision:"
+        echo "Checked out:"
         git rev-parse HEAD
