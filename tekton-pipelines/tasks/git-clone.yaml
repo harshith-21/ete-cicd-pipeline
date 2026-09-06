@@ -38,29 +38,33 @@ spec:
         #!/bin/sh
         set -eu
 
-        OUTPUT="$(workspaces.output.path)"
+        TARGET="$(workspaces.output.path)"
 
         echo "Cleaning workspace..."
 
         if [ "$(params.deleteExisting)" = "true" ]; then
-          find "$OUTPUT" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          rm -rf "${TARGET:?}"/*
+          rm -rf "${TARGET:?}"/.[!.]* "${TARGET:?}"/..?* 2>/dev/null || true
         fi
 
-        cd "$OUTPUT"
+        echo "Configuring Git safe directory..."
+
+        git config --global --add safe.directory "$TARGET"
 
         echo "Initializing repository..."
+
+        cd "$TARGET"
 
         git init
 
         git remote add origin "$(params.url)"
 
-        echo "Fetching revision $(params.revision)..."
+        echo "Fetching revision..."
 
         git fetch --depth=1 origin "$(params.revision)"
 
-        echo "Checking out revision..."
-
         git checkout FETCH_HEAD
 
-        echo "Checked out:"
+        echo "Clone completed."
+
         git rev-parse HEAD
