@@ -8,15 +8,12 @@ spec:
   params:
     - name: IMAGE
       type: string
-      description: Full image name including tag
 
     - name: VERSION
       type: string
-      description: Application version
 
     - name: GIT_REVISION
       type: string
-      description: Git revision
 
     - name: CONTEXT
       type: string
@@ -27,12 +24,12 @@ spec:
 
   steps:
     - name: build-and-push
-      image: moby/buildkit:rootless
+      image: quay.io/buildah/stable:v1.41.0
 
       securityContext:
+        runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000
-        runAsNonRoot: true
         allowPrivilegeEscalation: false
         capabilities:
           drop:
@@ -44,12 +41,15 @@ spec:
         - name: HOME
           value: /tmp
 
-        - name: BUILDKITD_FLAGS
-          value: --oci-worker-no-process-sandbox
+        - name: REGISTRY_AUTH_FILE
+          value: /tmp/containers/auth.json
+
+        - name: STORAGE_DRIVER
+          value: vfs
 
       volumeMounts:
         - name: harbor-docker-config
-          mountPath: /tmp/.docker
+          mountPath: /tmp/containers
           readOnly: true
 
       workingDir: $(workspaces.source.path)/$(params.CONTEXT)
@@ -62,57 +62,31 @@ spec:
         echo "Build and Push"
         echo "========================================"
 
-        echo "Image     : $(params.IMAGE)"
-        echo "Version   : $(params.VERSION)"
-        echo "Revision  : $(params.GIT_REVISION)"
-        echo "Context   : $(workspaces.source.path)/$(params.CONTEXT)"
+        echo "Image    : $(params.IMAGE)"
+        echo "Version  : $(params.VERSION)"
+        echo "Revision : $(params.GIT_REVISION)"
 
         echo ""
-        echo "Dockerfile:"
-        cat Dockerfile
+        echo "Buildah:"
+        buildah version
 
         echo ""
-        echo "Starting BuildKit..."
+        echo "Building..."
 
-        buildkitd \
-          --addr unix:///tmp/buildkitd.sock \
-          ${BUILDKITD_FLAGS} \
-          > /tmp/buildkitd.log 2>&1 &
-
-        BUILDKITD_PID=$!
-
-        cleanup() {
-          kill "$BUILDKITD_PID" 2>/dev/null || true
-        }
-
-        trap cleanup EXIT
-
-        echo "Waiting for BuildKit..."
-
-        for i in $(seq 1 30); do
-          if buildctl \
-            --addr unix:///tmp/buildkitd.sock \
-            debug workers >/dev/null 2>&1; then
-            break
-          fi
-
-          sleep 1
-        done
-
-        echo "BuildKit ready."
+        buildah bud \
+          --storage-driver="${STORAGE_DRIVER}" \
+          --tag="$(params.IMAGE)" \
+          --label="org.opencontainers.image.version=$(params.VERSION)" \
+          --label="org.opencontainers.image.revision=$(params.GIT_REVISION)" \
+          .
 
         echo ""
-        echo "Building image..."
+        echo "Pushing..."
 
-        buildctl \
-          --addr unix:///tmp/buildkitd.sock \
-          build \
-          --frontend dockerfile.v0 \
-          --local context=. \
-          --local dockerfile=. \
-          --opt label:org.opencontainers.image.version="$(params.VERSION)" \
-          --opt label:org.opencontainers.image.revision="$(params.GIT_REVISION)" \
-          --output type=image,name="$(params.IMAGE)",push=true
+        buildah push \
+          --storage-driver="${STORAGE_DRIVER}" \
+          "$(params.IMAGE)" \
+          "docker://$(params.IMAGE)"
 
         echo ""
         echo "========================================"
@@ -125,4 +99,4 @@ spec:
         secretName: harbor-credentials
         items:
           - key: .dockerconfigjson
-            path: config.json
+            path: auth.json
