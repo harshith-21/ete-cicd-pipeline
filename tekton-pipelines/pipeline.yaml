@@ -29,8 +29,7 @@ spec:
     - name: source
 
   tasks:
-
-    - name: clone
+    - name: fetch-source
       taskRef:
         name: git-clone
 
@@ -72,16 +71,16 @@ spec:
 
       params:
         - name: IMAGE
-          value: "$(params.image-repository):$(params.image-tag)"
+          value: $(params.image-repository)
 
         - name: VERSION
-          value: "$(params.version)"
+          value: $(params.version)
 
         - name: GIT_REVISION
-          value: "$(params.git-revision)"
+          value: $(params.git-revision)
 
         - name: CONTEXT
-          value: "$(params.context)"
+          value: $(params.context)
 
       workspaces:
         - name: source

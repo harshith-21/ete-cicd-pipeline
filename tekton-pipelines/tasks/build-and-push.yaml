@@ -23,10 +23,10 @@ spec:
     - name: source
 
   volumes:
-    - name: kaniko-cache
+    - name: kaniko-dir
       emptyDir: {}
 
-    - name: kaniko-tmp
+    - name: kaniko-cache
       emptyDir: {}
 
     - name: harbor-docker-config
@@ -42,8 +42,8 @@ spec:
 
       securityContext:
         runAsNonRoot: true
-        runAsUser: 65532
-        runAsGroup: 65532
+        runAsUser: 1000
+        runAsGroup: 1000
         allowPrivilegeEscalation: false
         capabilities:
           drop:
@@ -55,15 +55,15 @@ spec:
         - name: HOME
           value: /tmp
 
-        - name: DOCKER_CONFIG
-          value: /kaniko/.docker
+        - name: KANIKO_DIR
+          value: /tmp/kaniko
 
       volumeMounts:
+        - name: kaniko-dir
+          mountPath: /tmp/kaniko
+
         - name: kaniko-cache
           mountPath: /cache
-
-        - name: kaniko-tmp
-          mountPath: /tmp
 
         - name: harbor-docker-config
           mountPath: /kaniko/.docker
