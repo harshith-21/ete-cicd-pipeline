@@ -102,14 +102,3 @@ spec:
 
         echo ""
         echo "Build and push completed"
-
-  volumes:
-    - name: buildah-tmp
-      emptyDir: {}
-
-    - name: harbor-docker-config
-      secret:
-        secretName: harbor-credentials
-        items:
-          - key: .dockerconfigjson
-            path: auth.json
