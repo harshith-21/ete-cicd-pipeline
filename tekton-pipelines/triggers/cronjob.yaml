@@ -5,13 +5,25 @@ metadata:
   namespace: tekton-pipelines
 
 spec:
-  schedule: "*/5 * * * *"
+  # Poll every 2 minutes
+  schedule: "*/2 * * * *"
 
+  # Never run two pollers simultaneously
   concurrencyPolicy: Forbid
+
+  # Don't keep failed Jobs forever
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 3
 
   jobTemplate:
     spec:
+      backoffLimit: 1
+
       template:
+        metadata:
+          labels:
+            app: go-calculator-poller
+
         spec:
           serviceAccountName: go-calculator-poller
 
@@ -24,7 +36,10 @@ spec:
 
           containers:
             - name: poller
-              image: bitnami/kubectl:latest
+
+              # Has git + shell. We download kubectl below.
+              image: bitnami/git:latest
+              imagePullPolicy: IfNotPresent
 
               securityContext:
                 allowPrivilegeEscalation: false
@@ -48,40 +63,110 @@ spec:
                 - name: IMAGE_REPOSITORY
                   value: "harbor.harbor.svc.cluster.local/library/go-calculator"
 
+                - name: KUBECTL_VERSION
+                  value: "v1.34.1"
+
               command:
-                - /bin/sh
+                - /bin/bash
                 - -c
 
               args:
                 - |
-                  set -eu
+                  set -euo pipefail
 
-                  echo "Polling repository..."
+                  echo "========================================"
+                  echo "Go Calculator Poller"
+                  echo "========================================"
 
-                  REVISION=$(git ls-remote "$GIT_URL" "refs/heads/$GIT_REVISION" | awk '{print $1}')
+                  # --------------------------------------------------
+                  # Install kubectl into writable /tmp
+                  # --------------------------------------------------
+
+                  echo "Installing kubectl ${KUBECTL_VERSION}..."
+
+                  curl -fsSL \
+                    "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
+                    -o /tmp/kubectl
+
+                  chmod +x /tmp/kubectl
+
+                  KUBECTL="/tmp/kubectl"
+
+                  echo "kubectl:"
+                  "$KUBECTL" version --client
+
+                  # --------------------------------------------------
+                  # Get current Git commit SHA
+                  # --------------------------------------------------
+
+                  echo "Checking Git repository..."
+
+                  REVISION=$(
+                    git ls-remote \
+                      "$GIT_URL" \
+                      "refs/heads/$GIT_REVISION" \
+                    | awk '{print $1}'
+                  )
+
+                  if [ -z "$REVISION" ]; then
+                    echo "ERROR: Could not determine Git revision"
+                    exit 1
+                  fi
 
                   echo "Git revision: $REVISION"
 
-                  VERSION=$(wget -qO- \
-                    "https://raw.githubusercontent.com/harshith-21/ete-cicd-pipeline/main/go-calculator/VERSION")
+                  # --------------------------------------------------
+                  # Get VERSION
+                  # --------------------------------------------------
+
+                  VERSION=$(
+                    curl -fsSL \
+                    "https://raw.githubusercontent.com/harshith-21/ete-cicd-pipeline/${GIT_REVISION}/${APP_PATH}/VERSION"
+                  )
 
                   VERSION=$(echo "$VERSION" | tr -d '[:space:]')
 
+                  if [ -z "$VERSION" ]; then
+                    echo "ERROR: VERSION is empty"
+                    exit 1
+                  fi
+
                   echo "Application version: $VERSION"
 
-                  EXISTING=$(kubectl get pipelineruns \
-                    -n tekton-pipelines \
-                    -l "app=go-calculator,version=$VERSION" \
-                    --no-headers 2>/dev/null || true)
+                  # --------------------------------------------------
+                  # Check whether this version was already processed
+                  # --------------------------------------------------
+
+                  echo "Checking existing PipelineRuns..."
+
+                  EXISTING=$(
+                    "$KUBECTL" get pipelineruns \
+                      -n tekton-pipelines \
+                      -l "app=go-calculator,version=$VERSION" \
+                      --no-headers 2>/dev/null || true
+                  )
 
                   if [ -n "$EXISTING" ]; then
                     echo "Version $VERSION already processed."
+                    echo "$EXISTING"
                     exit 0
                   fi
 
-                  echo "New version detected: $VERSION"
+                  # --------------------------------------------------
+                  # New version
+                  # --------------------------------------------------
 
-                  cat <<EOF | kubectl apply -f -
+                  echo "========================================"
+                  echo "NEW VERSION DETECTED"
+                  echo "Version : $VERSION"
+                  echo "Revision: $REVISION"
+                  echo "========================================"
+
+                  # --------------------------------------------------
+                  # Create PipelineRun
+                  # --------------------------------------------------
+
+                  cat <<EOF | "$KUBECTL" apply -f -
                   apiVersion: tekton.dev/v1
                   kind: PipelineRun
                   metadata:
@@ -90,7 +175,6 @@ spec:
                     labels:
                       app: go-calculator
                       version: "$VERSION"
-
                   spec:
                     taskRunTemplate:
                       serviceAccountName: go-calculator-pipeline
@@ -115,7 +199,7 @@ spec:
                         value: "$VERSION"
 
                       - name: context
-                        value: "go-calculator"
+                        value: "$APP_PATH"
 
                     workspaces:
                       - name: source
@@ -128,4 +212,6 @@ spec:
                                 storage: 2Gi
                   EOF
 
-                  echo "PipelineRun created."
+                  echo "========================================"
+                  echo "PipelineRun created successfully"
+                  echo "========================================"
