@@ -120,7 +120,7 @@ spec:
 
                   EXISTING=$(
                     kubectl get pipelineruns \
-                      -n tekton-pipelines \
+                      -n tekton-privileged \
                       -l "app=go-calculator,version=$VERSION" \
                       --no-headers 2>/dev/null || true
                   )
