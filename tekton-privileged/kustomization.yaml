@@ -5,6 +5,7 @@ namespace: tekton-privileged
 
 resources:
   - namespace.yaml
+  - credentials/harbor-secret.yaml
   - tasks/git-clone.yaml
   - tasks/test.yaml
   - tasks/build-and-push.yaml
