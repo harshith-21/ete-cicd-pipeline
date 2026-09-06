@@ -30,13 +30,20 @@ spec:
       image: gcr.io/kaniko-project/executor:v1.23.2
 
       securityContext:
+        runAsUser: 65532
+        runAsGroup: 65532
+        runAsNonRoot: true
         allowPrivilegeEscalation: false
         capabilities:
           drop:
             - ALL
-        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+          readOnly: true
 
       args:
         - --dockerfile=$(workspaces.source.path)/$(params.CONTEXT)/Dockerfile
@@ -45,3 +52,11 @@ spec:
         - --label=org.opencontainers.image.version=$(params.VERSION)
         - --label=org.opencontainers.image.revision=$(params.GIT_REVISION)
         - --cache=true
+
+  volumes:
+    - name: docker-config
+      secret:
+        secretName: harbor-credentials
+        items:
+          - key: .dockerconfigjson
+            path: config.json

@@ -55,6 +55,10 @@ spec:
       taskRef:
         name: go-test
 
+      params:
+        - name: context
+          value: "$(params.context)"
+
       workspaces:
         - name: source
           workspace: source

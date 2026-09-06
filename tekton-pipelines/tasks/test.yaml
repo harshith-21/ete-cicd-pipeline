@@ -5,14 +5,18 @@ metadata:
   namespace: tekton-pipelines
 
 spec:
+  params:
+    - name: context
+      type: string
+      default: go-calculator
+
   workspaces:
     - name: source
 
   steps:
     - name: test
       image: golang:1.25-alpine
-
-      workingDir: $(workspaces.source.path)
+      workingDir: $(workspaces.source.path)/$(params.context)
 
       securityContext:
         runAsUser: 65532
@@ -44,6 +48,9 @@ spec:
 
         echo "Working directory:"
         pwd
+
+        echo "Go module:"
+        cat go.mod
 
         echo "Running tests..."
 
