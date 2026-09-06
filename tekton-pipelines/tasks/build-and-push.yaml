@@ -23,73 +23,72 @@ spec:
     - name: source
 
   volumes:
-    - name: docker-config
+    - name: harbor-docker-config
       secret:
         secretName: harbor-credentials
         items:
           - key: .dockerconfigjson
             path: config.json
 
-    - name: buildkit-state
-      emptyDir: {}
-
-    - name: buildkit-tmp
-      emptyDir: {}
-
   steps:
     - name: build-and-push
-      image: moby/buildkit:v0.25.1-rootless
+      image: quay.io/buildah/stable:v1.43.2
 
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-            - ALL
-        seccompProfile:
-          type: RuntimeDefault
+        privileged: true
+        runAsUser: 0
+        runAsGroup: 0
+        allowPrivilegeEscalation: true
 
       env:
         - name: HOME
-          value: /home/user
+          value: /root
 
-        - name: XDG_RUNTIME_DIR
-          value: /tmp/buildkit
+        - name: REGISTRY_AUTH_FILE
+          value: /root/.docker/config.json
 
-        - name: BUILDKITD_FLAGS
-          value: --oci-worker-no-process-sandbox
+        - name: STORAGE_DRIVER
+          value: vfs
 
       volumeMounts:
-        - name: docker-config
-          mountPath: /home/user/.docker
+        - name: harbor-docker-config
+          mountPath: /root/.docker
           readOnly: true
-
-        - name: buildkit-state
-          mountPath: /home/user/.local/share/buildkit
-
-        - name: buildkit-tmp
-          mountPath: /tmp
 
       workingDir: $(workspaces.source.path)/$(params.CONTEXT)
 
-      command:
-        - buildctl-daemonless.sh
+      script: |
+        #!/bin/sh
+        set -eu
 
-      args:
-        - build
+        IMAGE="$(params.IMAGE)"
+        VERSION="$(params.VERSION)"
+        FULL_IMAGE="${IMAGE}:${VERSION}"
 
-        - --frontend=dockerfile.v0
+        echo "========================================"
+        echo "Build and Push"
+        echo "========================================"
+        echo "Image    : ${FULL_IMAGE}"
+        echo "Revision : $(params.GIT_REVISION)"
 
-        - --local
-        - context=$(workspaces.source.path)/$(params.CONTEXT)
+        buildah version
 
-        - --local
-        - dockerfile=$(workspaces.source.path)/$(params.CONTEXT)
+        echo "Building..."
 
-        - --output
-        - type=image,name=$(params.IMAGE):$(params.VERSION),push=true
+        buildah bud \
+          --storage-driver="${STORAGE_DRIVER}" \
+          --tag="${FULL_IMAGE}" \
+          --label="org.opencontainers.image.version=${VERSION}" \
+          --label="org.opencontainers.image.revision=$(params.GIT_REVISION)" \
+          .
 
-        - --opt
-        - filename=Dockerfile
+        echo "Pushing..."
+
+        buildah push \
+          --storage-driver="${STORAGE_DRIVER}" \
+          "${FULL_IMAGE}" \
+          "docker://${FULL_IMAGE}"
+
+        echo "========================================"
+        echo "Build and push completed"
+        echo "========================================"
