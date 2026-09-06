@@ -23,6 +23,9 @@ spec:
     - name: source
 
   volumes:
+    - name: buildah-tmp
+      emptyDir: {}
+
     - name: harbor-docker-config
       secret:
         secretName: harbor-credentials
@@ -101,4 +104,6 @@ spec:
           "docker://$(params.IMAGE)"
 
         echo ""
+        echo "========================================"
         echo "Build and push completed"
+        echo "========================================"
