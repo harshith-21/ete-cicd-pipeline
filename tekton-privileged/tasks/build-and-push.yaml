@@ -86,6 +86,7 @@ spec:
 
         buildah push \
           --storage-driver="${STORAGE_DRIVER}" \
+          --tls-verify=false \
           "${FULL_IMAGE}" \
           "docker://${FULL_IMAGE}"
 
