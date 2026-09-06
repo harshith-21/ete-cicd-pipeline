@@ -5,4 +5,8 @@ namespace: tekton-privileged
 
 resources:
   - namespace.yaml
+  - tasks/git-clone.yaml
+  - tasks/test.yaml
+  - tasks/build-and-push.yaml
+  - pipeline.yaml
   - rbac/go-calculator-builder.yaml

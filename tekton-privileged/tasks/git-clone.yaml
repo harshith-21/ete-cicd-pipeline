@@ -1,0 +1,121 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: git-clone
+  namespace: tekton-pipelines
+
+spec:
+  params:
+    - name: url
+      type: string
+
+    - name: revision
+      type: string
+
+    - name: deleteExisting
+      type: string
+      default: "true"
+
+  workspaces:
+    - name: output
+
+  steps:
+    - name: clone
+      image: alpine/git:2.47.2
+
+      securityContext:
+        runAsUser: 65532
+        runAsGroup: 65532
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
+
+      script: |
+        #!/bin/sh
+        set -eu
+
+        TARGET="$(workspaces.output.path)"
+
+        echo "========================================"
+        echo "Git Clone"
+        echo "========================================"
+
+        echo "Repository : $(params.url)"
+        echo "Revision   : $(params.revision)"
+        echo "Workspace  : $TARGET"
+
+        # --------------------------------------------------
+        # Clean workspace
+        # --------------------------------------------------
+
+        echo "Cleaning workspace..."
+
+        if [ "$(params.deleteExisting)" = "true" ]; then
+          rm -rf "${TARGET:?}"/*
+          rm -rf "${TARGET:?}"/.[!.]* "${TARGET:?}"/..?* 2>/dev/null || true
+        fi
+
+        # --------------------------------------------------
+        # Tell Git that the Tekton workspace is trusted.
+        #
+        # Do NOT use git config --global because UID 65532
+        # cannot write /.gitconfig.
+        # --------------------------------------------------
+
+        export GIT_CONFIG_COUNT=1
+        export GIT_CONFIG_KEY_0=safe.directory
+        export GIT_CONFIG_VALUE_0="$TARGET"
+
+        # --------------------------------------------------
+        # Initialize repository
+        # --------------------------------------------------
+
+        cd "$TARGET"
+
+        echo "Initializing repository..."
+
+        git init
+
+        git remote add origin "$(params.url)"
+
+        # --------------------------------------------------
+        # Fetch exact revision
+        # --------------------------------------------------
+
+        echo "Fetching revision..."
+
+        git fetch \
+          --depth=1 \
+          origin \
+          "$(params.revision)"
+
+        # --------------------------------------------------
+        # Checkout exact commit
+        # --------------------------------------------------
+
+        echo "Checking out revision..."
+
+        git checkout --detach FETCH_HEAD
+
+        # --------------------------------------------------
+        # Verify
+        # --------------------------------------------------
+
+        ACTUAL_REVISION="$(git rev-parse HEAD)"
+
+        echo "========================================"
+        echo "Clone completed"
+        echo "========================================"
+        echo "Expected: $(params.revision)"
+        echo "Actual:   $ACTUAL_REVISION"
+
+        if [ "$ACTUAL_REVISION" != "$(params.revision)" ]; then
+          echo "ERROR: revision mismatch"
+          exit 1
+        fi
+
+        echo "Revision verified successfully."

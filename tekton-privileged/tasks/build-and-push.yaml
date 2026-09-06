@@ -1,0 +1,94 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-and-push
+  namespace: tekton-privileged
+
+spec:
+  params:
+    - name: IMAGE
+      type: string
+
+    - name: VERSION
+      type: string
+
+    - name: GIT_REVISION
+      type: string
+
+    - name: CONTEXT
+      type: string
+      default: go-calculator
+
+  workspaces:
+    - name: source
+
+  volumes:
+    - name: harbor-docker-config
+      secret:
+        secretName: harbor-credentials
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+
+  steps:
+    - name: build-and-push
+      image: quay.io/buildah/stable:v1.43.2
+
+      securityContext:
+        privileged: true
+        runAsUser: 0
+        runAsGroup: 0
+        allowPrivilegeEscalation: true
+
+      env:
+        - name: HOME
+          value: /root
+
+        - name: REGISTRY_AUTH_FILE
+          value: /root/.docker/config.json
+
+        - name: STORAGE_DRIVER
+          value: vfs
+
+      volumeMounts:
+        - name: harbor-docker-config
+          mountPath: /root/.docker
+          readOnly: true
+
+      workingDir: $(workspaces.source.path)/$(params.CONTEXT)
+
+      script: |
+        #!/bin/sh
+        set -eu
+
+        IMAGE="$(params.IMAGE)"
+        VERSION="$(params.VERSION)"
+        FULL_IMAGE="${IMAGE}:${VERSION}"
+
+        echo "========================================"
+        echo "Build and Push"
+        echo "========================================"
+        echo "Image    : ${FULL_IMAGE}"
+        echo "Revision : $(params.GIT_REVISION)"
+
+        buildah version
+
+        echo "Building..."
+
+        buildah bud \
+          --storage-driver="${STORAGE_DRIVER}" \
+          --tag="${FULL_IMAGE}" \
+          --label="org.opencontainers.image.version=${VERSION}" \
+          --label="org.opencontainers.image.revision=$(params.GIT_REVISION)" \
+          .
+
+        echo "Pushing..."
+
+        buildah push \
+          --storage-driver="${STORAGE_DRIVER}" \
+          "${FULL_IMAGE}" \
+          "docker://${FULL_IMAGE}"
+
+        echo "========================================"
+        echo "Build and push completed"
+        echo "========================================"
