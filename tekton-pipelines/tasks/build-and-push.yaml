@@ -110,9 +110,9 @@ spec:
           --frontend dockerfile.v0 \
           --local context=. \
           --local dockerfile=. \
-          --output type=image,name=$(params.IMAGE),push=true \
-          --label org.opencontainers.image.version=$(params.VERSION) \
-          --label org.opencontainers.image.revision=$(params.GIT_REVISION)
+          --opt label:org.opencontainers.image.version="$(params.VERSION)" \
+          --opt label:org.opencontainers.image.revision="$(params.GIT_REVISION)" \
+          --output type=image,name="$(params.IMAGE)",push=true
 
         echo ""
         echo "========================================"
