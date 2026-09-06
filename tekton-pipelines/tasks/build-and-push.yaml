@@ -35,15 +35,9 @@ spec:
       image: quay.io/buildah/stable:v1.43.2
 
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-            - ALL
-        seccompProfile:
-          type: RuntimeDefault
+        privileged: true
+        runAsUser: 0
+        runAsGroup: 0
 
       env:
         - name: HOME
