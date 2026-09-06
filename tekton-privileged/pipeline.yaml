@@ -5,6 +5,8 @@ metadata:
   namespace: tekton-privileged
 
 spec:
+  serviceAccountName: go-calculator-pipeline
+
   params:
     - name: git-url
       type: string
