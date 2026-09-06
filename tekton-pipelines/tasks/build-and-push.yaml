@@ -23,6 +23,12 @@ spec:
     - name: source
 
   volumes:
+    - name: kaniko-cache
+      emptyDir: {}
+
+    - name: kaniko-tmp
+      emptyDir: {}
+
     - name: harbor-docker-config
       secret:
         secretName: harbor-credentials
@@ -36,8 +42,8 @@ spec:
 
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
+        runAsUser: 65532
+        runAsGroup: 65532
         allowPrivilegeEscalation: false
         capabilities:
           drop:
@@ -45,7 +51,20 @@ spec:
         seccompProfile:
           type: RuntimeDefault
 
+      env:
+        - name: HOME
+          value: /tmp
+
+        - name: DOCKER_CONFIG
+          value: /kaniko/.docker
+
       volumeMounts:
+        - name: kaniko-cache
+          mountPath: /cache
+
+        - name: kaniko-tmp
+          mountPath: /tmp
+
         - name: harbor-docker-config
           mountPath: /kaniko/.docker
           readOnly: true
@@ -60,6 +79,6 @@ spec:
         - --dockerfile=$(workspaces.source.path)/$(params.CONTEXT)/Dockerfile
         - --destination=$(params.IMAGE):$(params.VERSION)
         - --cache=true
-        - --cache-repo=$(params.IMAGE)-cache
+        - --cache-dir=/cache
         - --label=org.opencontainers.image.version=$(params.VERSION)
         - --label=org.opencontainers.image.revision=$(params.GIT_REVISION)
