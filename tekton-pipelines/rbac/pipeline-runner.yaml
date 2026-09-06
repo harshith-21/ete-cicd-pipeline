@@ -5,3 +5,43 @@ metadata:
   namespace: tekton-pipelines
 imagePullSecrets:
   - name: harbor-credentials
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: go-calculator-poller
+  namespace: tekton-pipelines
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: go-calculator-poller
+  namespace: tekton-pipelines
+rules:
+  - apiGroups:
+      - tekton.dev
+    resources:
+      - pipelineruns
+    verbs:
+      - get
+      - list
+      - create
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: go-calculator-poller
+  namespace: tekton-pipelines
+
+subjects:
+  - kind: ServiceAccount
+    name: go-calculator-poller
+    namespace: tekton-pipelines
+
+roleRef:
+  kind: Role
+  name: go-calculator-poller
+  apiGroup: rbac.authorization.k8s.io
