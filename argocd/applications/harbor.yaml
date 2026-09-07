@@ -15,10 +15,17 @@ spec:
     helm:
       valuesObject:
         expose:
-          type: clusterIP
+          type: nodePort
           tls:
             enabled: false
-        externalURL: http://harbor.local
+          nodePort:
+            name: harbor
+            ports:
+              http:
+                port: 80
+                nodePort: 30080
+
+        externalURL: http://harbor.local:30080
         harborAdminPassword: "admin123"
         persistence:
           enabled: true
