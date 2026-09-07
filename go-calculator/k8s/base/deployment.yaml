@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-calculator
+  labels:
+    app: go-calculator
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: go-calculator
+
+  template:
+    metadata:
+      labels:
+        app: go-calculator
+
+    spec:
+      containers:
+        - name: go-calculator
+          image: harbor.harbor.svc.cluster.local/library/go-calculator:1.0.28
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          env:
+            - name: ENV
+              value: "base"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20

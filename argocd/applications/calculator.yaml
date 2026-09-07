@@ -1,0 +1,79 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: go-calculator-dev
+  namespace: argocd
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/harshith-21/ete-cicd-pipeline.git
+    targetRevision: main
+    path: go-calculator/k8s/overlays/dev
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: go-calculator-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: go-calculator-staging
+  namespace: argocd
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/harshith-21/ete-cicd-pipeline.git
+    targetRevision: main
+    path: go-calculator/k8s/overlays/staging
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: go-calculator-staging
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: go-calculator-prod
+  namespace: argocd
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/harshith-21/ete-cicd-pipeline.git
+    targetRevision: main
+    path: go-calculator/k8s/overlays/prod
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: go-calculator-prod
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
