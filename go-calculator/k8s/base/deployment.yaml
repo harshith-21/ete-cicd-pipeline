@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: go-calculator
-          image: harbor.harbor.svc.cluster.local/library/go-calculator:1.0.28
+          image: harbor.harbor.svc.cluster.local/library/go-calculator:1.0.29
           ports:
             - containerPort: 8080
               protocol: TCP
