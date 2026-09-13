@@ -57,11 +57,19 @@ func calculateHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	_, _ = w.Write([]byte(`{"status":"ok"}`))
+}
+
 func main() {
 	fs := http.FileServer(http.Dir("./static"))
 
 	http.Handle("/", fs)
 	http.HandleFunc("/api/calculate", calculateHandler)
+	http.HandleFunc("/health", healthHandler)
 
 	port := 8080
 
