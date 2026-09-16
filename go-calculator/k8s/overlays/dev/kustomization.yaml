@@ -17,7 +17,7 @@ patches:
           name: THEME_COLOR
           value: "#a855f7"
 
-      - op: add
+      - op: replace
         path: /spec/template/spec/containers/0/env/-
         value:
           name: ENV
