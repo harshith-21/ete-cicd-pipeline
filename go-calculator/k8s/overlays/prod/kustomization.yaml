@@ -5,3 +5,14 @@ namespace: go-calculator-prod
 
 resources:
   - ../../base
+
+patches:
+  - target:
+      kind: Deployment
+      name: calculator
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: THEME_COLOR
+          value: "#22c55e"
