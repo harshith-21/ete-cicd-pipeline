@@ -9,7 +9,7 @@ resources:
 patches:
   - target:
       kind: Deployment
-      name: calculator
+      name: go-calculator
     patch: |-
       - op: add
         path: /spec/template/spec/containers/0/env/-
