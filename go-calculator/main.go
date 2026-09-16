@@ -2,8 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"html/template"
 	"log"
 	"net/http"
+	"os"
+	"regexp"
 	"strconv"
 )
 
@@ -15,6 +18,42 @@ type CalculateRequest struct {
 
 type CalculateResponse struct {
 	Result float64 `json:"result"`
+}
+
+type PageData struct {
+	ThemeColor string
+}
+
+var hexColorRegex = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	html, err := os.ReadFile("static/index.html")
+	if err != nil {
+		http.Error(w, "failed to read index.html", http.StatusInternalServerError)
+		return
+	}
+
+	tmpl, err := template.New("index.html").Parse(string(html))
+	if err != nil {
+		http.Error(w, "failed to parse index.html", http.StatusInternalServerError)
+		return
+	}
+
+	themeColor := os.Getenv("THEME_COLOR")
+
+	if !hexColorRegex.MatchString(themeColor) {
+		themeColor = "#3498db"
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	err = tmpl.Execute(w, PageData{
+		ThemeColor: themeColor,
+	})
+	if err != nil {
+		http.Error(w, "failed to render page", http.StatusInternalServerError)
+		return
+	}
 }
 
 func calculateHandler(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +91,7 @@ func calculateHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(CalculateResponse{
+	_ = json.NewEncoder(w).Encode(CalculateResponse{
 		Result: result,
 	})
 }
@@ -65,9 +104,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fs := http.FileServer(http.Dir("./static"))
-
-	http.Handle("/", fs)
+	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/api/calculate", calculateHandler)
 	http.HandleFunc("/health", healthHandler)
 
