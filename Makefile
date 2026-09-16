@@ -43,3 +43,12 @@ poller-push:
 	docker tag harshith21/tekton-poller:2.0.0 harshith21/tekton-poller:latest
 	docker push harshith21/tekton-poller:2.0.0
 	docker push harshith21/tekton-poller:latest
+
+kind-cluster:
+	kind create cluster --name cicd --config kind-config.yml
+	kubectl cluster-info --context kind-cicd
+
+clean-kind:
+	kind delete cluster --name cicd
+
+full-setup: kind-cluster argo

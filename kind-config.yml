@@ -1,0 +1,29 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: dev-cluster
+
+nodes:
+  - role: control-plane
+  - role: worker
+  - role: worker
+
+containerdConfigPatches:
+  # Only mirror PUBLIC registries through the pull-through cache.
+  # Do NOT add a wildcard "*" entry here — that's what breaks Harbor.
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+      endpoint = ["http://registry-mirror:1273"]
+
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."registry.k8s.io"]
+      endpoint = ["http://registry-mirror:1273"]
+
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.io"]
+      endpoint = ["http://registry-mirror:1273"]
+
+    # Harbor talked to DIRECTLY, no mirror in front of it.
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."harbor.harbor.svc.cluster.local"]
+      endpoint = ["http://harbor.harbor.svc.cluster.local"]
+
+    # Harbor is served over plain HTTP internally — mark it insecure/skip TLS verify.
+    [plugins."io.containerd.grpc.v1.cri".registry.configs."harbor.harbor.svc.cluster.local".tls]
+      insecure_skip_verify = true
