@@ -1,24 +1,19 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namespace: go-calculator-dev
-
-resources:
-  - ../../base
-
 patches:
   - target:
       kind: Deployment
       name: go-calculator
     patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/env/-
-        value:
-          name: THEME_COLOR
-          value: "#a855f7"
-
-      - op: replace
-        path: /spec/template/spec/containers/0/env/-
-        value:
-          name: ENV
-          value: "dev"
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: go-calculator
+      spec:
+        template:
+          spec:
+            containers:
+              - name: go-calculator
+                env:
+                  - name: ENV
+                    value: "dev"
+                  - name: THEME_COLOR
+                    value: "#a855f7"

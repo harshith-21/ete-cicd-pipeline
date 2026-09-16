@@ -11,14 +11,17 @@ patches:
       kind: Deployment
       name: go-calculator
     patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/env/-
-        value:
-          name: THEME_COLOR
-          value: "#3b82f6"
-
-      - op: replace
-        path: /spec/template/spec/containers/0/env/-
-        value:
-          name: ENV
-          value: "staging"
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: go-calculator
+      spec:
+        template:
+          spec:
+            containers:
+              - name: go-calculator
+                env:
+                  - name: ENV
+                    value: "staging"
+                  - name: THEME_COLOR
+                    value: "#3b82f6"
