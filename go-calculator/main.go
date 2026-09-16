@@ -22,6 +22,7 @@ type CalculateResponse struct {
 
 type PageData struct {
 	ThemeColor string
+	Env 	   string
 }
 
 var hexColorRegex = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
@@ -49,6 +50,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = tmpl.Execute(w, PageData{
 		ThemeColor: themeColor,
+		Env:        os.Getenv("ENV"),
 	})
 	if err != nil {
 		http.Error(w, "failed to render page", http.StatusInternalServerError)

@@ -16,3 +16,9 @@ patches:
         value:
           name: THEME_COLOR
           value: "#3b82f6"
+
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: ENV
+          value: "staging"

@@ -16,3 +16,9 @@ patches:
         value:
           name: THEME_COLOR
           value: "#22c55e"
+
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: ENV
+          value: "prod"
