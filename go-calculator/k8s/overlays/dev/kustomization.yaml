@@ -20,6 +20,7 @@ patches:
           spec:
             containers:
               - name: go-calculator
+                image: harbor.harbor.svc.cluster.local/library/go-calculator:latest
                 env:
                   - name: ENV
                     value: "dev"

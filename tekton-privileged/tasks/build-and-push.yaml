@@ -64,6 +64,7 @@ spec:
         IMAGE="$(params.IMAGE)"
         VERSION="$(params.VERSION)"
         FULL_IMAGE="${IMAGE}:${VERSION}"
+        FULL_IMAGE_LATEST="${IMAGE}:latest"
 
         echo "========================================"
         echo "Build and Push"
@@ -78,17 +79,26 @@ spec:
         buildah bud \
           --storage-driver="${STORAGE_DRIVER}" \
           --tag="${FULL_IMAGE}" \
+          --tag="${FULL_IMAGE_LATEST}" \
           --label="org.opencontainers.image.version=${VERSION}" \
           --label="org.opencontainers.image.revision=$(params.GIT_REVISION)" \
           .
 
-        echo "Pushing..."
+        echo "Pushing ${FULL_IMAGE}..."
 
         buildah push \
           --storage-driver="${STORAGE_DRIVER}" \
           --tls-verify=false \
           "${FULL_IMAGE}" \
           "docker://${FULL_IMAGE}"
+
+        echo "Pushing ${FULL_IMAGE_LATEST}..."
+
+        buildah push \
+          --storage-driver="${STORAGE_DRIVER}" \
+          --tls-verify=false \
+          "${FULL_IMAGE_LATEST}" \
+          "docker://${FULL_IMAGE_LATEST}"
 
         echo "========================================"
         echo "Build and push completed"

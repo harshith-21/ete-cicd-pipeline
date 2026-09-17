@@ -20,6 +20,7 @@ patches:
           spec:
             containers:
               - name: go-calculator
+                image: harbor.harbor.svc.cluster.local/library/go-calculator:1.1.1
                 env:
                   - name: ENV
                     value: "staging"
