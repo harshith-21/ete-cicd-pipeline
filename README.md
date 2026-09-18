@@ -15,3 +15,8 @@ Features worth seeing
 
 - ETE project build and artifact storage
 - CVE scanning in harbor
+
+Things to showcase
+
+- Fully automated deployment with kind
+- Argo managed, tekton built, harbor stored and scanned images deployed in same cluster in 3 env's latest in dev and versioned in staging and prod for control with deployments visually recognisable by UI per env
